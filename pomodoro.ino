@@ -1,3 +1,9 @@
+/*------------------------ 
+Pomodoro Timer con Arduino
+author: gaba@totel.it
+thx BOCS APS
+-----------------------*/
+
 #include "SevSegShift.h"
 #include "pitches.h"
 
