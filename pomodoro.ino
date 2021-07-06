@@ -7,6 +7,14 @@
 
 SevSegShift sevseg(SHIFT_PIN_DS, SHIFT_PIN_SHCP, SHIFT_PIN_STCP);
 
+//Condizioni
+const String workMode   = "counter == 0 || counter == 2 || counter == 4 || counter == 6";
+const String shortBreak = "counter == 1 || counter == 3 || counter == 5 || counter == 7";
+const String longBreak  = "counter == 8";
+
+//Minuti per ogni modalità
+const float mode[] = {25, 5, 10};
+
 int melody[] = {NOTE_C5, NOTE_E5, NOTE_G5, NOTE_B6, NOTE_D7, NOTE_FS7, NOTE_A7, NOTE_CS8};
 int noteDurations[] = {32, 32, 32, 32, 32, 32, 32, 32};
 
@@ -41,63 +49,60 @@ void setup() {
   sevseg.setBrightness(90);
 }
 
+void buzz(){
+  if(buzzerFlag == false){
+    for (int thisNote = 0; thisNote < 8; thisNote++) {
+      int noteDuration = 1000 / noteDurations[thisNote];
+      tone(buzzPin, melody[thisNote]+10, noteDuration);
+      int pauseBetweenNotes = noteDuration * 1.30;
+      delay(pauseBetweenNotes);
+      noTone(8);
+    }
+    buzzerFlag = true;
+  }
+}
 
-long minute = 60000; //quanti millisecondi in un minuto
-long second =  1000; //quanti millisecondi in un secondo
+long minute = 60000; //millisecondi in un minuto
+long second =  1000; //millisecondi in un secondo
 
-void countdown(float m) {
-   currentMillis = (millis() - prevMillis); //da quanto tempo l'Arduino è acceso
-   long work = minute * m;                  //numero di minuti in millisecondi
-   long timeNow = work - currentMillis;
-   int minutes = timeNow / minute;
-   int seconds = (timeNow % minute) / second;
+void countdown(float m){
+   currentMillis = (millis() - prevMillis);   //da quanto tempo l'Arduino è acceso (in ms)
+   long work = minute * m;                    //numero di minuti in millisecondi
+   long timeNow = work - currentMillis;       //sottrai timer al tempo corrente
+   int minutes = timeNow / minute;            //converti in minuti
+   int seconds = (timeNow % minute) / second; //converti in secondi
    
-   minutes = (minutes * 100) + seconds;
-   sevseg.setNumber(minutes);
-   sevseg.refreshDisplay();
+   minutes = (minutes * 100) + seconds;       //concatena minuti e secondi
+   sevseg.setNumber(minutes);                 //setta valore sul display
+   sevseg.refreshDisplay();                   //aggiorna il display
  
-   if(minutes == 0000) {
-     buzzerFlag = false;
-     prevMillis = millis();
-     counter++;  //aggiungi +1 quando il timer finisce
-     if(counter >=9) {
-      sevseg.setNumber(9999);
-      //counter = 0;
+   if(minutes == 0000) {                      //quando il timer arriva a 0
+     buzzerFlag = false;                      //attiva il buzzer
+     prevMillis = millis();                   //snapshot in millisecondi
+     counter++;                               //aggiungi +1 quando il timer finisce
+     if(counter >=9) {                        //fine ciclo
+      buzz();
+      //counter = 0;                          //reset ciclo
+      sevseg.setNumber(0000);
      }
      Serial.println(counter);
    }
 }
 
-void buzz(){
-  for (int thisNote = 0; thisNote < 8; thisNote++) {
-    int noteDuration = 1000 / noteDurations[thisNote];
-    tone(buzzPin, melody[thisNote]+10, noteDuration);
-    int pauseBetweenNotes = noteDuration * 1.30;
-    delay(pauseBetweenNotes);
-    noTone(8);
-  }
-  buzzerFlag = true;
-}
-
 void loop() {
+  if(workMode){
+    buzz();
+    countdown(mode[0]);
+  }
+  if(shortBreak){
+    buzz();
+    countdown(mode[1]);
+  }
+  if(longBreak){
+    buzz();
+    countdown(mode[2]);
+  }
   if(digitalRead(buttonPin) == LOW){
     reset();
-  }
-  //Work mode
-  if (counter == 0 || counter == 2 || counter == 4 || counter == 6) {
-    if(buzzerFlag == false){
-      buzz();
-    }
-    countdown(25);
-  }
-  //Short break
-  if (counter == 1 || counter == 3 || counter == 5 || counter == 7)
-  {
-    countdown(5);
-  }
-  //Long Break
-  if (counter == 8)
-  {
-    countdown(10);
   }
 }
